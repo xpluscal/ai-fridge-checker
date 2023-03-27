@@ -25,28 +25,43 @@ export const actions = {
 
     try {
       const diagnosis = createPrompt(userData);
-      const diagnosisResponse = await callGPTApiWithRetry(diagnosis);
-      console.log(diagnosisResponse);
 
-      const combinedArray = JSON.parse(diagnosisResponse);
-      console.log(combinedArray);
-
-      return {
-        ...combinedArray,
+      try {
+        const combinedArray = await getParseableJson(diagnosis);
+        console.log(combinedArray);
+        return {
+          ...combinedArray,
+        }
+      } catch (e) {
+        console.log(e);
+        throw error(500, 'An error occurred while processing your request.');
       }
+      
     } catch (e) {
       console.log(e);
       throw error(500, 'An error occurred while processing your request.');
     }
-
-    return {
-        status: 200,
-        success: true
-    }
   }
 } satisfies Actions;
 
-async function callGPTApiWithRetry(prompt, retries = 5) {
+async function getParseableJson(diagnosis:string, retry = 0): Promise<any> {
+  const diagnosisResponse = await callGPTApiWithRetry(diagnosis);
+
+  try {
+    const combinedArray = JSON.parse(diagnosisResponse);
+    console.log(combinedArray);
+    return {
+      ...combinedArray,
+    }
+  } catch (e) {
+    console.log(e);
+    if(retry < 3) {
+      return getParseableJson(diagnosis, retry + 1);
+    }
+  }
+}
+
+async function callGPTApiWithRetry(prompt:string, retries = 5): Promise<string> {
   try {
     return await callGPTApi(prompt);
   } catch (e) {
