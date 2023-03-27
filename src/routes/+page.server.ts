@@ -29,7 +29,7 @@ export const actions = {
       console.log(diagnosisResponse);
 
       const combinedArray = JSON.parse(diagnosisResponse);
-      // console.log(combinedArray);
+      console.log(combinedArray);
 
       return {
         ...combinedArray,
