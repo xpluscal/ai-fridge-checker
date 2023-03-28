@@ -220,7 +220,7 @@ import { page } from '$app/stores';
         <ul>
             {#each recipe.ingredients as ingredient}
                 <li>
-                    {ingredient.amount}{ingredient.unit} {ingredient.name}
+                    {ingredient.amount} {ingredient.unit} {ingredient.name}
                 </li>
             {/each}
         </ul>
@@ -238,7 +238,7 @@ import { page } from '$app/stores';
         </ol>
 
         <h4>
-            Approximate Preparation Time: {recipe.time}
+            Approximate Preparation Time: {recipe.preparation_time}
         </h4>
     </article>
 {:else}
