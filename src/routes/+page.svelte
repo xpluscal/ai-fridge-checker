@@ -5,15 +5,28 @@ import SvelteSeo from "svelte-seo";
 import { page } from '$app/stores';
 
   let step = 0;
-  let ingredients = "";
+  let calories = 2000;
+  let macroPercentages = {
+    protein: 30,
+    carbs: 50,
+    fat: 20,
+  };
+  let meals = {
+    breakfast: false,
+    lunch: true,
+    dinner: false,
+    snack: false,
+  };
+  let days = 5;
   let eatingPreferences;
   let allergies;
   let dislikes;
-  let loading = false;
-  let recipes = [];
-  let state = 1;
+  let mealPlan = [];
+  let orderableIngredients = [];
   let difficulty = "medium";
-  let maxCookTime = 30;
+
+  let loading = false;
+  let state = 1;
   let modalOpen = true;
 
   function nextStep() {
@@ -22,6 +35,16 @@ import { page } from '$app/stores';
 
   function previousStep() {
     step -= 1;
+  }
+
+  function handleMealme() {
+    const reducedUnits = orderableIngredients.reduce((acc, {name, amount}) => {
+        return {
+            ...acc,
+            [name]: parseFloat(amount)
+        }
+    }, {});
+    window.mealme.showCartSearchModal("conavio-sandbox", {query: reducedUnits});
   }
 </script>
 
@@ -105,7 +128,7 @@ import { page } from '$app/stores';
 </style>
 
 <svelte:head>
-  <title>What's in My Fridge?</title>
+  <title>Meal Plan Creator</title>
 </svelte:head>
 
 <SvelteSeo
@@ -127,10 +150,10 @@ import { page } from '$app/stores';
   }}
 />
 <div class="form-container">
-    <div class="header">
-        <a href="/"><img src="/logo.svg" alt="Recipe Suggester" class="logo"></a>
-        <span>Personalized Recipe Suggestions</span>
-    </div>
+  <div class="header">
+    <a href="/"><img src="/logo.svg" alt="Meal Plan Generator" class="logo"></a>
+    <span>Personalized Meal Plan Generator</span>
+  </div>
 
   {#if state === 1}
   <Stepper current={step}/>
@@ -139,22 +162,67 @@ import { page } from '$app/stores';
         state = 2;
         return async ({ result }) => {
           console.log(result);
-            if(result.status === 200) {
-                recipes = result.data.recipes;
-                console.log(recipes);
-                state = 4;
-            } else {
-                state = 3;
-            }
+          if(result.status === 200) {
+            mealPlan = result.data.days;
+            orderableIngredients = result.data.orderable_ingredients;
+            console.log(mealPlan);
+            console.log(orderableIngredients);
+            state = 4;
+          } else {
+            state = 3;
+          }
         };
-    }}>
+      }}>
     <div class="step {step === 0 ? 'active' : ''}">
       <p>
-        Please enter the ingredients you have in your fridge, separated by comma.
+        Please enter the details for the meal plan you want:
       </p>
-      <textarea rows="5" id="ingredients" name="ingredients" bind:value="{ingredients}" placeholder="e.g., eggs, milk, tomatoes, onions..." />
+      <label for="calories">Calories per day:</label>
+      <input type="number" id="calories" name="calories" bind:value="{calories}" placeholder="2000" min="0" />
 
-      <label for="allergies">Complexity</label>
+      <label for="protein">Protein %:</label>
+      <input type="number" id="protein" name="protein" bind:value="{macroPercentages.protein}" placeholder="30" min="0" max="100" />
+
+      <label for="carbs">Carbs %:</label>
+      <input type="number" id="carbs" name="carbs" bind:value="{macroPercentages.carbs}" placeholder="50" min="0" max="100" />
+
+      <label for="fat">Fat %:</label>
+      <input type="number" id="fat" name="fat" bind:value="{macroPercentages.fat}" placeholder="20" min="0" max="100" />
+
+      <p>Select which meals to include in your plan:</p>
+      <div class="flex">
+        <label for="breakfast">Breakfast</label>
+        <input type="checkbox" id="breakfast" name="breakfast" bind:checked="{meals.breakfast}" />
+      </div>
+      <div class="flex">
+        <label for="lunch">Lunch</label>
+        <input type="checkbox" id="lunch" name="lunch" bind:checked="{meals.lunch}" />
+      </div>
+      <label for="dinner">Dinner</label>
+      <input type="checkbox" id="dinner" name="dinner" bind:checked="{meals.dinner}" />
+      <label for="snack">Snack</label>
+      <input type="checkbox" id="snack" name="snack" bind:checked="{meals.snack}" />
+
+      <label for="days">Number of days to plan:</label>
+      <input type="number" id="days" name="days" bind:value="{days}" placeholder="7" min="1" />
+
+      <button disabled={!calories} type="button" on:click="{nextStep}" class="btn-primary">Next</button>
+    </div>
+
+    <div class="step {step === 1  ? 'active' : ''}">
+      <p>Please provide some additional information about your eating preferences, allergies, and dislikes.</p>
+
+      <label for="eatingPreferences">Eating Preferences</label>
+      <select id="eatingPreferences" name="eatingPreferences" bind:value="{eatingPreferences}">
+        <option value="">Select Preference</option>
+        <option value="vegan">Vegan</option>
+        <option value="vegetarian">Vegetarian</option>
+        <option value="pescatarian">Pescatarian</option>
+        <option value="meat">Meat</option>
+        <option value="any">Any</option>
+      </select>
+
+      <label for="difficulty">Complexity</label>
       <select id="difficulty" name="difficulty" bind:value="{difficulty}">
         <option value="">Select Preference</option>
         <option value="easy">Easy</option>
@@ -163,87 +231,76 @@ import { page } from '$app/stores';
         <option value="michelin">Michelin Restaurant</option>
       </select>
 
-      <label for="maxCookTime">Maximum Cook Time in Minutes (Optional)</label>
-      <input id="maxCookTime" name="maxCookTime" bind:value="{maxCookTime}" placeholder="30" />
+      <label for="allergies">Allergies (Optional)</label>
+      <input id="allergies" name="allergies" bind:value="{allergies}" placeholder="e.g., nuts, gluten, dairy..." />
 
+      <label for="dislikes">Dislikes (Optional)</label>
+      <input id="dislikes" name="dislikes" bind:value="{dislikes}" placeholder="e.g., mushrooms, spicy food, cilantro..." />
 
-      <button disabled={ingredients.length <= 0} type="button" on:click="{nextStep}" class="btn-primary">Next</button>
+      <div class="actions">
+        <button type="button" on:click="{previousStep}" class="secondary">Previous</button>
+        <button type="submit" class="btn-primary">Submit</button>
+      </div>
     </div>
-
-    <div class="step {step === 1  ? 'active' : ''}">
-  <p>Please provide some additional information about your eating preferences, allergies, and dislikes.</p>
-
-  <label for="eatingPreferences">Eating Preferences</label>
-  <select id="eatingPreferences" name="eatingPreferences" bind:value="{eatingPreferences}">
-    <option value="">Select Preference</option>
-    <option value="vegan">Vegan</option>
-    <option value="vegetarian">Vegetarian</option>
-    <option value="pescatarian">Pescatarian</option>
-    <option value="meat">Meat</option>
-    <option value="any">Any</option>
-  </select>
-
-  <label for="allergies">Allergies (Optional)</label>
-  <input id="allergies" name="allergies" bind:value="{allergies}" placeholder="e.g., nuts, gluten, dairy..." />
-
-  <label for="dislikes">Dislikes (Optional)</label>
-  <input id="dislikes" name="dislikes" bind:value="{dislikes}" placeholder="e.g., mushrooms, spicy food, cilantro..." />
-
-  <div class="actions">
-    <button type="button" on:click="{previousStep}" class="secondary">Previous</button>
-    <button type="submit" class="btn-primary">Submit</button>
-  </div>
-
-</div>
-</form>
+  </form>
 {:else if state === 2}
 <article aria-busy="true">Finding Recipe Suggestions...</article>
 {:else if state === 3}
 <article class="error">Sorry, something went wrong. Please try again.</article>
 {:else}
-<h1>Recipe Suggestions: </h1>
+<h1>Mealplan Suggestions: </h1>
 <article><small><b>Disclaimer:</b> The information provided on this website, including any recipe suggestions, is intended for informational and educational purposes only and should not be considered professional culinary advice. Always take into account your personal dietary restrictions and preferences before preparing or consuming any suggested recipes. If you have concerns about potential allergies or dietary restrictions, consult with a qualified healthcare professional or registered dietitian.</small></article>
 
-{#each recipes as recipe}
-    <article>
-        <h2>
-            {recipe.title}
-        </h2>
-        <p>
-            {recipe.description}
-        </p>
+<button type="button" on:click={handleMealme} class="btn-primary">Order Now</button>
 
-        <h3>
+{#each mealPlan as day, index}
+<!-- <article> -->
+<h2>
+    Day {index}
+</h2>
+
+{#if day.lunch}
+
+<h3>
+    Lunch
+</h3>
+
+<ul>
+        <article>
+        <h4>{day.lunch.title}</h4>
+
+        <h4>
             Ingredients
-        </h3>
+        </h4>
 
         <ul>
-            {#each recipe.ingredients as ingredient}
+            {#each day.lunch.ingredients as ingredient}
                 <li>
                     {ingredient.amount} {ingredient.unit} {ingredient.name}
                 </li>
             {/each}
         </ul>
 
-        <h3>
+        <h4>
             Cooking Instructions
-        </h3>
+        </h4>
 
         <ol>
-            {#each recipe.instructions as instruction}
+            {#each day.lunch.instructions as instruction}
                 <li>
                     {instruction}
                 </li>
             {/each}
         </ol>
 
-        <h4>
-            Approximate Preparation Time: {recipe.preparation_time}
-        </h4>
-    </article>
+        </article>
+</ul>
+
+{/if}
 {:else}
-     <!-- empty list -->
+   <!-- empty list -->
 {/each}
+
 {/if}
 
 </div>

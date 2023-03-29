@@ -16,9 +16,23 @@ export const actions = {
     // console.log("FORM:");
 
     // console.log(Object.fromEntries(form));
+    const preData = Object.fromEntries(form);
+
+    preData.macroPercentages = {
+      protein: Number(preData.protein),
+      carbs: Number(preData.carbs),
+      fat: Number(preData.fat),
+    }
+
+    preData.meals = {
+      breakfast: preData.breakfast === 'on',
+      lunch: preData.lunch === 'on',
+      dinner: preData.dinner === 'on',
+      snack: preData.snack === 'on',
+    }
 
     const userData:UserData = {
-        ...Object.fromEntries(form)
+        ...preData
     } as UserData;
 
     console.log(userData);

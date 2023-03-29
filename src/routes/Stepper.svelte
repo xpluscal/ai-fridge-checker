@@ -1,6 +1,6 @@
 <script>
     export let steps = [{
-        title: "What's in your fridge?",
+        title: "Options",
         content: 'Step 1 content'
     }, {
         title: 'Your Preferences',
